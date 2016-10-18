@@ -13,43 +13,37 @@ private:
     std::string message;
     std::string terminator;
 
-    void on_write(const boost::system::error_code &error, size_t size)
+    void on_write(const boost::system::error_code &, size_t)
     {
-        boost::system::error_code now;
+/*        boost::system::error_code now;
         socket->shutdown(ip::tcp::socket::shutdown_both, now);
         socket->close(now);
-        size = size;
+        size = size;*/
 
-        if (error) {
-            return;
-        }
         return;
     }
 
-    void on_read(const boost::system::error_code &, size_t)
+    void on_read(const boost::system::error_code &error, size_t)
     {
         std::istream is(buffer.get());
-        is >> std::noskipws;
-        char ch;
+        getline(is, message);
+        message += terminator;
 
-        while (is >> ch) {
-            message += ch;
-        }
         std::string result = "Got this message: " + message;
         std::cout << message;
         std::cout.flush();
 
         async_write(*socket, boost::asio::buffer(result), boost::bind(&Worker::on_write, this, _1, _2));
-    /*
+    
         if (error) {
             boost::system::error_code now;
-            c.socket->shutdown(ip::tcp::socket::shutdown_both, now);
-            c.socket->close(now);
+            socket->shutdown(ip::tcp::socket::shutdown_both, now);
+            socket->close(now);
             std::cout << "connection terminated" << std::endl;
             return;
         }
 
-        async_read_until(*c.socket, *c.buffer, terminator, boost::bind(on_read, c, _1, _2));*/
+        async_read_until(*socket, *buffer, terminator, boost::bind(&Worker::on_read, this, _1, _2));
     }
 
 public:
@@ -59,9 +53,14 @@ public:
     }
 };
 
+
 class Factory
 {
 private:
+    Factory() {}
+    ~Factory() {}
+    Factory(const Factory &);
+    Factory &operator =(const Factory &);
     // boost::thread
     // singleton
     // queue of sockets
@@ -73,8 +72,14 @@ public:
         //workers.push_back(new Worker(socket));
         workers.push_back(std::shared_ptr <Worker>(new Worker(socket)));
     }
-        
-} factory;
+
+    static Factory &instance()
+    {
+        static Factory factory;
+        return factory;
+    }
+};
+
 
 class Acceptor
 {
@@ -88,7 +93,7 @@ private:
         if (error) {
             return;
         }
-        factory.add_query(socket);
+        Factory::instance().add_query(socket);
         std::shared_ptr <ip::tcp::socket> newsocket(new ip::tcp::socket(service));
         start_accept(newsocket);
     }
