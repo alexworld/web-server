@@ -8,6 +8,11 @@ using namespace boost::asio;
 class Worker
 {
 private:
+    //TODO
+    // HTTP work
+    // block copy
+    // shared ptrs????
+
     std::shared_ptr <ip::tcp::socket> socket;
     std::shared_ptr <streambuf> buffer;
     std::string message;
@@ -61,15 +66,15 @@ private:
     ~Factory() {}
     Factory(const Factory &);
     Factory &operator =(const Factory &);
+
+    // TODO
     // boost::thread
-    // singleton
     // queue of sockets
     std::vector <std::shared_ptr <Worker> > workers;
 
 public:
     void add_query(std::shared_ptr <ip::tcp::socket> socket)
     {
-        //workers.push_back(new Worker(socket));
         workers.push_back(std::shared_ptr <Worker>(new Worker(socket)));
     }
 
@@ -103,13 +108,15 @@ private:
         acceptor.async_accept(*socket, boost::bind(&Acceptor::handle_accept, this, socket, _1));
     }
 
+    Acceptor &operator =(const Acceptor &);
+    Acceptor(const Acceptor &);
+
 public:
     Acceptor(unsigned short _port): port(_port),
     acceptor(ip::tcp::acceptor(service, ip::tcp::endpoint(ip::tcp::v4(), port)))
     {
         std::shared_ptr <ip::tcp::socket> socket(new ip::tcp::socket(service));
         start_accept(socket);
-//        service.run();
     }
 
     static void start_working()
