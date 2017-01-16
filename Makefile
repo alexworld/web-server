@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS = -std=c++11 -Wpedantic -Werror -Wall -Wextra -Wshadow -Wconversion -O2
-LDFLAGS = -lboost_system
+LDFLAGS = -lboost_system -lpthread
 
 all : server
 

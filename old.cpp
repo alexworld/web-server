@@ -3,12 +3,6 @@
 #include <iostream>
 #include <cassert>
 #include <set>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <queue>
-#include <sstream>
-#include <fstream>
 
 using namespace boost::asio;
 
@@ -79,7 +73,7 @@ public:
             Message now(from, to, cont, false);
             user_messages[from].push_back(now);
             user_messages[to].push_back(now);
-            notify(from, "Message sent: " + cont);
+            notify(from, "Message sent");
             notify(to, "Message from " + from + ": " + cont);
         }
     }
@@ -119,7 +113,6 @@ private:
     std::string option;
     std::string user;
     std::string password;
-    std::mutex m;
 
     int action;
 
@@ -142,14 +135,7 @@ private:
             socket->close(now);
             return;
         }
-        std::istream iss(buffer.get());
-
-        std::string mess;
-
-        getline(iss, mess);
-        
-        std::stringstream is;
-        is << mess;
+        std::istream is(buffer.get());
 
         if (action == 3) {
             std::string opt;
@@ -234,50 +220,19 @@ public:
 
 class Factory {
 private:
-    std::vector <std::thread> threads;
-    std::queue <std::shared_ptr <ip::tcp::socket> > Q;
-    std::mutex m;
-    std::condition_variable cv;
-
-    void thread_func() {
-        std::vector <std::shared_ptr <Worker> > workers;
-
-        while (true) {
-            std::unique_lock <std::mutex> lk(m);
-            cv.wait(lk, [this]{return !Q.empty();});
-
-            auto socket = Q.front();
-            Q.pop();
-
-            lk.unlock();
-            cv.notify_one();
-
-            workers.push_back(std::shared_ptr <Worker>(new Worker(socket)));
-        }
-    }
-
-    Factory() {
-        for (unsigned i = 0; i < std::thread::hardware_concurrency(); i++) {
-            threads.emplace_back(boost::bind(&Factory::thread_func, this));
-        }
-    }
-
-    ~Factory() {
-        for (auto &thr: threads) {
-            thr.join();
-        }
-    }
-
+    Factory() {}
+    ~Factory() {}
     Factory(const Factory &);
     Factory &operator =(const Factory &);
 
+    // TODO
+    // boost::thread
+    // queue of sockets
+    std::vector <std::shared_ptr <Worker> > workers;
+
 public:
     void add_query(std::shared_ptr <ip::tcp::socket> socket) {
-        m.lock();
-        Q.push(socket);
-        
-        cv.notify_one();
-        m.unlock();
+        workers.push_back(std::shared_ptr <Worker>(new Worker(socket)));
     }
 
     static Factory &instance() {
@@ -324,7 +279,7 @@ io_service Acceptor::service;
 
 
 int main() {
-    Acceptor server1(7000);
-    Acceptor server2(8000);
+    Acceptor server1(5000);
+    Acceptor server2(4000);
     Acceptor::start_working();
 }

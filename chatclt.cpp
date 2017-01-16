@@ -26,8 +26,8 @@ int set_nonblock(int fd) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 3) {
-        printf("2 arguments needed\n");
+    if (argc != 4) {
+        printf("3 arguments needed\n");
         return 0;
     }
 
@@ -37,10 +37,12 @@ int main(int argc, char **argv) {
         std::cout << strerror(errno) << std::endl;
         return 1;
     }
+    int port;
+    sscanf(argv[3], "%d", &port);
 
     struct sockaddr_in SockAddr;
     SockAddr.sin_family = AF_INET;
-    SockAddr.sin_port = htons(5000);
+    SockAddr.sin_port = htons(port);
     SockAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     int Result = connect(ClientSocket, (struct sockaddr *) &SockAddr, sizeof(SockAddr));
 
@@ -92,16 +94,16 @@ int main(int argc, char **argv) {
                 sprintf(Buffer, "%d\n", name);
                 state++;
             } else {
-                sprintf(Buffer, "S %d a\n", 3 - name);
+                sprintf(Buffer, "S %d a\n", (name ^ 1));
             }
 
 
             printf("%s", Buffer);
 
             fflush(stdout);
-
+/*
             send(ClientSocket, Buffer, strlen(Buffer), MSG_NOSIGNAL);
-
+*/
             ALL++;
         }
     }
